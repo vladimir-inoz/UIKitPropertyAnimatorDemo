@@ -29,14 +29,112 @@
     }
  }
  
- class AnimationCoordinator: NSObject {
+ class AnimationCoordinator {
+    weak var masterViewController: MasterViewController?
+    weak var detailViewController: DetailViewController?
+    //track all running animators
+    private var runningAnimators = [UIViewPropertyAnimator]()
+    private var progressWhenInterrupted: CGFloat = 0.0
+    
+    enum State {
+        case collapsed, expanded
+        var inversed: State {
+            switch self {
+            case .collapsed:
+                return .expanded
+            case .expanded:
+                return .collapsed
+            }
+        }
+    }
+    private var state: State = .collapsed
+    
+    init(withMasterVC master: MasterViewController, andDetailVC detail: DetailViewController) {
+        masterViewController = master
+        detailViewController = detail
+    }
+    
+    //Perform all animations with animators if not already running
+    func animateTransitionIfNeeded(state: State, duration: TimeInterval) {
+        guard let master = masterViewController, let detail = detailViewController else {return}
+        if runningAnimators.isEmpty {
+            let frameAnimator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1) {
+                switch state {
+                case .expanded:
+                    detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - 50)
+                case .collapsed:
+                    detail.view.frame = master.view.frame
+                }
+            }
+            frameAnimator.addCompletion {
+                position in
+                if position == UIViewAnimatingPosition.end {
+                    self.state = self.state.inversed
+                    self.runningAnimators = self.runningAnimators.filter{$0 !== frameAnimator}
+                }
+            }
+            frameAnimator.startAnimation()
+            runningAnimators.append(frameAnimator)
+        }
+    }
+    
+    //Starts transition if necessary or recerses it on tap
+    func animateOrReverseRunningTransition(state: State, duration: TimeInterval) {
+        if runningAnimators.isEmpty {
+            animateTransitionIfNeeded(state: state, duration: duration)
+        } else {
+            for animator in runningAnimators {
+                animator.isReversed = !animator.isReversed
+            }
+        }
+    }
+    
+    func startInteractiveTransition(state: State, duration: TimeInterval) {
+        for animator in runningAnimators {
+            animator.pauseAnimation()
+        }
+    }
+    
+    func updateInteractiveTransition(fractionComplete: CGFloat) {
+        for animator in runningAnimators {
+            animator.fractionComplete = fractionComplete
+        }
+    }
+    
+    func continueInteractiveTransition(cancel: Bool) {
+        for animator in runningAnimators {
+            let timing = UICubicTimingParameters(animationCurve: .easeIn)
+            animator.continueAnimation(withTimingParameters: timing, durationFactor: 0)
+        }
+    }
+    
+    func handleTap(recognizer: UITapGestureRecognizer) {
+        animateOrReverseRunningTransition(state: state, duration: 0.5)
+    }
+    
+    func handlePan(state: UIGestureRecognizer.State, translation: CGPoint) {
+        guard let master = masterViewController else {
+            return
+        }
+        
+        switch state {
+        case .began:
+            startInteractiveTransition(state: self.state, duration: 0.5)
+        case .changed:
+            updateInteractiveTransition(fractionComplete: 0.0)
+        case .ended:
+            continueInteractiveTransition(cancel: false)
+        default:
+            break
+        }
+    }
  }
  
  class DetailViewController: UIViewController {
-    lazy var dataSource = {
+    private lazy var dataSource = {
        return SampleTableDataSource()
     }()
-    lazy var topView: UIView = {
+    private lazy var topView: UIView = {
         let containerView = UIView(frame: CGRect.zero)
         containerView.backgroundColor = UIColor.red
         
@@ -55,25 +153,18 @@
         containerView.addGestureRecognizer(panGestureRecognizer)
         return containerView
     }()
-    lazy var tableView: UITableView = {
+    private lazy var tableView: UITableView = {
         let table = UITableView(frame: CGRect.zero, style: .plain)
         table.dataSource = dataSource
         table.register(UITableViewCell.self, forCellReuseIdentifier: "PlainCell")
         return table
     }()
-    //gesture handlers
-    var handleTapFunc: (UITapGestureRecognizer) -> Void = {
-        recognizer in
-    }
-    var handlePanFunc: (UIPanGestureRecognizer) -> Void = {
-        recognizer in
-    }
+    public var coordinator: AnimationCoordinator?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         view.backgroundColor = UIColor.white
-        
         view.addSubview(topView)
         view.addSubview(tableView)
     
@@ -96,21 +187,19 @@
     }
     
     @objc func handleTap(recognizer: UITapGestureRecognizer) {
-        handleTapFunc(recognizer)
+        if let coordinator = self.coordinator {
+            coordinator.handleTap(recognizer: recognizer)
+        }
     }
     
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
-        handlePanFunc(recognizer)
+        if let coordinator = self.coordinator {
+            coordinator.handlePan(state: recognizer.state, translation: recognizer.translation(in: view))
+        }
     }
  }
  
  class MasterViewController: UIViewController {
-    lazy var detailViewController: DetailViewController = {
-        let vc = DetailViewController(nibName: nil, bundle: nil)
-        vc.view.frame = view.frame.offsetBy(dx: 0.0, dy: view.frame.height/2)
-        return vc
-    }()
-    
     lazy var label: UILabel = {
         let label = UILabel(frame: CGRect.zero)
         label.text = "Master view controller"
@@ -121,6 +210,7 @@
         let view = UIImageView(image: nil)
         return view
     }()
+    public var coordinator: AnimationCoordinator?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -129,7 +219,6 @@
         
         view.addSubview(label)
         view.addSubview(imageView)
-        view.addSubview(detailViewController.view)
         
         setupConstraints()
     }
@@ -147,7 +236,14 @@
     }
  }
  
- let vc = MasterViewController()
+ let master = MasterViewController()
  
- PlaygroundPage.current.liveView = vc
+ PlaygroundPage.current.liveView = master
  PlaygroundPage.current.needsIndefiniteExecution = true
+ 
+ let detail = DetailViewController()
+ master.view.addSubview(detail.view)
+ detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - 50)
+ let coordinator = AnimationCoordinator(withMasterVC: master, andDetailVC: detail)
+ master.coordinator = coordinator
+ detail.coordinator = coordinator
