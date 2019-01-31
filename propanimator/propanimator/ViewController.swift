@@ -31,6 +31,8 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
     }
     
     func setupCoordinators() {
+        let springTimingParameters = UIViewPropertyAnimator(duration: 1.0, dampingRatio: 2.0, animations: nil).timingParameters!
+        
         let collapsing = {
             [unowned self, unowned detail = self.detail, unowned master = self.master] in
             detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - self.detailViewOffset)
@@ -49,9 +51,9 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
             master.effectView.effect = nil
         }
         
-        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: expanding, collapsingAnimation: collapsing)
+        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: expanding, collapsingAnimation: collapsing, timingParameters: springTimingParameters)
         coordinators.append(positionCoordinator)
-        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: blur, collapsingAnimation: noBlur)
+        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: blur, collapsingAnimation: noBlur, timingParameters: springTimingParameters)
         coordinators.append(blurCoordinator)
     }
     

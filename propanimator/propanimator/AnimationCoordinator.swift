@@ -4,10 +4,13 @@ import UIKit
  This class receives events from pan and touch gesture recognizers
  And controls corresponding UIViewPropertyAnimator
  Animation closures are stored in `expandingAnimation` and `collapsingAnimation` properties
+ You should provide timing parameters
  */
 final class AnimationCoordinator {
-    //track all running animators
+    //our controlled animator
     private var animator: UIViewPropertyAnimator?
+    //timing parameters
+    private let timingParameters: UITimingCurveProvider
     //progress of animation when user 'captured' it with pan gesture
     private var progressWhenInterrupted: CGFloat = 0.0
     //height of master view controller
@@ -50,11 +53,12 @@ final class AnimationCoordinator {
     let expandingAnimation: () -> Void
     let collapsingAnimation: () -> Void
     
-    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void) {
+    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void, timingParameters: UITimingCurveProvider) {
         masterHeight = height
         startingOffset = offset
         self.expandingAnimation = expandingAnimation
         self.collapsingAnimation = collapsingAnimation
+        self.timingParameters = timingParameters
     }
     
     //Perform animation with animator if not already running
@@ -67,7 +71,8 @@ final class AnimationCoordinator {
             case .collapsed:
                 animatorFunction = expandingAnimation
             }
-            animator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1, animations: animatorFunction)
+            animator = UIViewPropertyAnimator(duration: duration, timingParameters: timingParameters)
+            animator!.addAnimations(animatorFunction)
             animator!.addCompletion {
                 [unowned self] (position) -> Void in
                 switch position {
@@ -154,8 +159,7 @@ final class AnimationCoordinator {
             animator.isReversed = !animator.isReversed
             animator.fractionComplete = 1.0 - animator.fractionComplete
         }
-        let timing = UICubicTimingParameters(animationCurve: .easeIn)
-        animator.continueAnimation(withTimingParameters: timing, durationFactor: 0)
+        animator.continueAnimation(withTimingParameters: timingParameters, durationFactor: 0)
     }
     
     //MARK: - Gesture recognizers handlers

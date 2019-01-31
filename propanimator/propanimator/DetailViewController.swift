@@ -11,7 +11,7 @@ class DetailViewController: UIViewController {
     }()
     private lazy var topView: UIView = {
         let containerView = UIView(frame: CGRect.zero)
-        containerView.backgroundColor = UIColor.red
+        containerView.backgroundColor = UIColor(red: 0.627, green: 0.514, blue: 0.514, alpha: 1.0)
         
         let label = UILabel(frame: CGRect.zero)
         label.text = "Detail view controller"
