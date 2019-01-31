@@ -49,7 +49,18 @@ class ViewController: UIViewController {
         
         master.view.addSubview(detail.view)
         detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.frame.height - 100)
-        let coordinator = AnimationCoordinator(withMasterVC: master, andDetailVC: detail, withInitialOffset: 100)
+        
+        let collapsing = {
+            detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - 100)
+            master.effectView.effect = nil
+        }
+        let expanding = {
+            detail.view.frame = master.view.frame
+            let blurEffect = UIBlurEffect(style: .prominent)
+            master.effectView.effect = blurEffect
+        }
+        
+        let coordinator = AnimationCoordinator(withMasterVC: master, andDetailVC: detail, withInitialOffset: 100, expandingAnimation: expanding, collapsingAnimation: collapsing)
         master.coordinator = coordinator
         detail.coordinator = coordinator
     }

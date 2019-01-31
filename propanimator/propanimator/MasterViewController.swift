@@ -1,6 +1,10 @@
 import UIKit
 
 class MasterViewController: UIViewController {
+    lazy var effectView: UIVisualEffectView = {
+        let view = UIVisualEffectView(effect: nil)
+        return view
+    }()
     lazy var label: UILabel = {
         let label = UILabel(frame: CGRect.zero)
         label.text = "Master view controller"
@@ -8,7 +12,9 @@ class MasterViewController: UIViewController {
     }()
     
     lazy var imageView: UIImageView = {
-        let view = UIImageView(image: nil)
+        let image = UIImage(named: "MasterImage")
+        let view = UIImageView(image: image)
+        view.contentMode = .scaleAspectFill
         return view
     }()
     public var coordinator: AnimationCoordinator?
@@ -17,14 +23,16 @@ class MasterViewController: UIViewController {
         super.viewDidLoad()
         
         view.backgroundColor = UIColor.white
-        
         view.addSubview(label)
         view.addSubview(imageView)
+        view.addSubview(effectView)
+        effectView.frame = view.bounds
         
         setupConstraints()
     }
     
     func setupConstraints() {
+        effectView.translatesAutoresizingMaskIntoConstraints = false
         label.translatesAutoresizingMaskIntoConstraints = false
         imageView.translatesAutoresizingMaskIntoConstraints = false
         

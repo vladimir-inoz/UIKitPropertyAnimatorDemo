@@ -41,28 +41,27 @@ final class AnimationCoordinator {
         }
     }
     private var state: DetailControllerState = .collapsed
+    //stored animations
+    let expandingAnimation: () -> Void
+    let collapsingAnimation: () -> Void
     
-    init(withMasterVC master: MasterViewController, andDetailVC detail: DetailViewController, withInitialOffset offset: CGFloat) {
+    init(withMasterVC master: MasterViewController, andDetailVC detail: DetailViewController, withInitialOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void) {
         masterViewController = master
         detailViewController = detail
         startingOffset = offset
+        self.expandingAnimation = expandingAnimation
+        self.collapsingAnimation = collapsingAnimation
     }
     
     //Perform all animations with animators if not already running
     func animateTransitionIfNeeded(state: DetailControllerState, duration: TimeInterval) {
-        guard let master = masterViewController, let detail = detailViewController else {return}
         if animator == nil {
             var animatorFunction: () -> Void
             switch state {
             case .expanded:
-                animatorFunction = {
-                    [unowned self] in
-                    detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - self.startingOffset)
-                }
+                animatorFunction = collapsingAnimation
             case .collapsed:
-                animatorFunction = {
-                    detail.view.frame = master.view.frame
-                }
+                animatorFunction = expandingAnimation
             }
             animator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1, animations: animatorFunction)
             animator!.addCompletion {
@@ -128,8 +127,6 @@ final class AnimationCoordinator {
         case .undefined:
             break
         }
-        
-        print("\(translation.y), \(masterHeight - startingOffset)")
         
         //substracting the fraction if the animator is reversed
         if animator.isReversed {fractionComplete *= -1}
