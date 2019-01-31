@@ -1,41 +1,17 @@
 import UIKit
 
-class SampleTableDataSource: NSObject, UITableViewDataSource {
-    let stringData = [
-        "Vestibulum dignissim, orci at bibendum",
-        "Cras mollis risus finibus diam.",
-        "sed porta neque congue id",
-        "consectetur adipiscing elit",
-        "Mauris scelerisque metus eget libero",
-        "Maecenas dolor orci, euismod id",
-        "vestibulum tincidunt, sagittis ac",
-        "Aliquam sit amet lacus eget",
-        "Maecenas dolor orci"
-    ]
+///Controller which glues master and detail view controllers
+///And contains all animation coordinators
+class ViewController: UIViewController, DetailViewControllerDelegate {
     
-    func numberOfSections(in tableView: UITableView) -> Int {
-        return 1
-    }
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return stringData.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        let cell = tableView.dequeueReusableCell(withIdentifier: "PlainCell", for: indexPath)
-        cell.textLabel?.text = stringData[indexPath.row]
-        return cell
-    }
-}
-
-
-class ViewController: UIViewController {
+    var coordinators = [AnimationCoordinator]()
+    lazy var master = MasterViewController()
+    lazy var detail = DetailViewController()
+    let detailViewOffset:CGFloat = 100
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let master = MasterViewController()
-        let detail = DetailViewController()
+        detail.delegate = self
         
         addChild(master)
         master.addChild(detail)
@@ -48,23 +24,49 @@ class ViewController: UIViewController {
         master.view.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor).isActive = true
         
         master.view.addSubview(detail.view)
-        detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.frame.height - 100)
         
+        detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.frame.height - detailViewOffset)
+        
+        setupCoordinators()
+    }
+    
+    func setupCoordinators() {
         let collapsing = {
-            detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - 100)
-            master.effectView.effect = nil
+            [unowned self, unowned detail = self.detail, unowned master = self.master] in
+            detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - self.detailViewOffset)
         }
         let expanding = {
+            [unowned detail = self.detail, unowned master = self.master] in
             detail.view.frame = master.view.frame
+        }
+        let blur = {
+            [unowned master = self.master] in
             let blurEffect = UIBlurEffect(style: .prominent)
             master.effectView.effect = blurEffect
         }
+        let noBlur = {
+            [unowned master = self.master] in
+            master.effectView.effect = nil
+        }
         
-        let coordinator = AnimationCoordinator(withMasterVC: master, andDetailVC: detail, withInitialOffset: 100, expandingAnimation: expanding, collapsingAnimation: collapsing)
-        master.coordinator = coordinator
-        detail.coordinator = coordinator
+        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: expanding, collapsingAnimation: collapsing)
+        coordinators.append(positionCoordinator)
+        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: blur, collapsingAnimation: noBlur)
+        coordinators.append(blurCoordinator)
     }
     
+    //MARK: - Detail view controller delegate
+    func handleTap() {
+        for coordinator in coordinators {
+            coordinator.handleTap()
+        }
+    }
+    
+    func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint, velocity: CGPoint) {
+        for coordinator in coordinators {
+            coordinator.handlePan(gestureState: gestureState, translation: translation, velocity: velocity)
+        }
+    }
     
 }
 

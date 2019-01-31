@@ -17,7 +17,6 @@ class MasterViewController: UIViewController {
         view.contentMode = .scaleAspectFill
         return view
     }()
-    public var coordinator: AnimationCoordinator?
     
     override func viewDidLoad() {
         super.viewDidLoad()

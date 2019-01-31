@@ -1,13 +1,18 @@
 import UIKit
 
+/*
+ This class receives events from pan and touch gesture recognizers
+ And controls corresponding UIViewPropertyAnimator
+ Animation closures are stored in `expandingAnimation` and `collapsingAnimation` properties
+ */
 final class AnimationCoordinator {
-    weak var masterViewController: MasterViewController?
-    weak var detailViewController: DetailViewController?
     //track all running animators
     private var animator: UIViewPropertyAnimator?
     //progress of animation when user 'captured' it with pan gesture
     private var progressWhenInterrupted: CGFloat = 0.0
-    //starting and enging offsets
+    //height of master view controller
+    private let masterHeight: CGFloat
+    //visible height of detail view controller from start
     private let startingOffset: CGFloat
     //initial animation direction
     enum AnimationDirection {
@@ -45,15 +50,14 @@ final class AnimationCoordinator {
     let expandingAnimation: () -> Void
     let collapsingAnimation: () -> Void
     
-    init(withMasterVC master: MasterViewController, andDetailVC detail: DetailViewController, withInitialOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void) {
-        masterViewController = master
-        detailViewController = detail
+    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void) {
+        masterHeight = height
         startingOffset = offset
         self.expandingAnimation = expandingAnimation
         self.collapsingAnimation = collapsingAnimation
     }
     
-    //Perform all animations with animators if not already running
+    //Perform animation with animator if not already running
     func animateTransitionIfNeeded(state: DetailControllerState, duration: TimeInterval) {
         if animator == nil {
             var animatorFunction: () -> Void
@@ -107,11 +111,8 @@ final class AnimationCoordinator {
     }
     
     //update animation when user pans
-    //initialDetailOffset - how much points of detail view controller is visible from start
     func updateInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
-        guard let animator = self.animator,
-            let masterHeight = masterViewController?.view.bounds.height
-            else { return }
+        guard let animator = self.animator else { return }
         
         if initialAnimationDirection == .undefined {
             initialAnimationDirection = AnimationDirection(fromVelocity: velocity)
@@ -135,9 +136,7 @@ final class AnimationCoordinator {
     
     //finish animation when user finished pan
     func continueInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
-        guard let animator = self.animator,
-        let masterHeight = masterViewController?.view.bounds.height
-            else {return}
+        guard let animator = self.animator else {return}
         
         //checking whether user moved detail view less than 50%
         let fractionComplete: CGFloat = abs(translation.y / (masterHeight - startingOffset))
@@ -159,9 +158,9 @@ final class AnimationCoordinator {
         animator.continueAnimation(withTimingParameters: timing, durationFactor: 0)
     }
     
-    //MARK: - Gesture recognizers handler
+    //MARK: - Gesture recognizers handlers
     
-    func handleTap(recognizer: UITapGestureRecognizer) {
+    func handleTap() {
         animateOrReverseRunningTransition(state: state, duration: 1.0)
     }
     

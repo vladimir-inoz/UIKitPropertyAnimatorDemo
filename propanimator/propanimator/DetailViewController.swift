@@ -1,5 +1,10 @@
 import UIKit
 
+protocol DetailViewControllerDelegate: AnyObject {
+    func handleTap()
+    func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint, velocity: CGPoint)
+}
+
 class DetailViewController: UIViewController {
     private lazy var dataSource = {
         return SampleTableDataSource()
@@ -29,7 +34,7 @@ class DetailViewController: UIViewController {
         table.register(UITableViewCell.self, forCellReuseIdentifier: "PlainCell")
         return table
     }()
-    public var coordinator: AnimationCoordinator?
+    public weak var delegate: DetailViewControllerDelegate?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -57,14 +62,10 @@ class DetailViewController: UIViewController {
     }
     
     @objc func handleTap(recognizer: UITapGestureRecognizer) {
-        if let coordinator = self.coordinator {
-            coordinator.handleTap(recognizer: recognizer)
-        }
+        delegate?.handleTap()
     }
     
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
-        if let coordinator = self.coordinator {
-            coordinator.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view), velocity: recognizer.velocity(in: view))
-        }
+        delegate?.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view), velocity: recognizer.velocity(in: view))
     }
 }

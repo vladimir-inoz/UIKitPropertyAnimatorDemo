@@ -15,6 +15,7 @@
 		CEC0F9B42201D283006327F0 /* AnimationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC0F9B32201D283006327F0 /* AnimationCoordinator.swift */; };
 		CEC0F9B62201D2A8006327F0 /* MasterViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC0F9B52201D2A8006327F0 /* MasterViewController.swift */; };
 		CEC0F9B82201D2B0006327F0 /* DetailViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC0F9B72201D2B0006327F0 /* DetailViewController.swift */; };
+		CEC0F9BA2203193D006327F0 /* SampleTableDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEC0F9B92203193D006327F0 /* SampleTableDataSource.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		CEC0F9B32201D283006327F0 /* AnimationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCoordinator.swift; sourceTree = "<group>"; };
 		CEC0F9B52201D2A8006327F0 /* MasterViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MasterViewController.swift; sourceTree = "<group>"; };
 		CEC0F9B72201D2B0006327F0 /* DetailViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailViewController.swift; sourceTree = "<group>"; };
+		CEC0F9B92203193D006327F0 /* SampleTableDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleTableDataSource.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 			children = (
 				CEC0F9A12201D20C006327F0 /* AppDelegate.swift */,
 				CEC0F9A32201D20C006327F0 /* ViewController.swift */,
+				CEC0F9B92203193D006327F0 /* SampleTableDataSource.swift */,
 				CEC0F9B32201D283006327F0 /* AnimationCoordinator.swift */,
 				CEC0F9B52201D2A8006327F0 /* MasterViewController.swift */,
 				CEC0F9B72201D2B0006327F0 /* DetailViewController.swift */,
@@ -149,6 +152,7 @@
 				CEC0F9B82201D2B0006327F0 /* DetailViewController.swift in Sources */,
 				CEC0F9A22201D20C006327F0 /* AppDelegate.swift in Sources */,
 				CEC0F9B42201D283006327F0 /* AnimationCoordinator.swift in Sources */,
+				CEC0F9BA2203193D006327F0 /* SampleTableDataSource.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
