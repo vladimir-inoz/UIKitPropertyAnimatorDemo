@@ -34,7 +34,7 @@
     weak var detailViewController: DetailViewController?
     //track all running animators
     private var runningAnimators = [UIViewPropertyAnimator]()
-    private var progressWhenInterrupted: CGFloat = 0.0
+    private var progressWhenInterrupted = [UIViewPropertyAnimator : CGFloat]()
     
     enum State {
         case collapsed, expanded
@@ -90,12 +90,18 @@
     }
     
     func startInteractiveTransition(state: State, duration: TimeInterval) {
+        if runningAnimators.isEmpty {
+            animateTransitionIfNeeded(state: state, duration: duration)
+        }
+        
         for animator in runningAnimators {
             animator.pauseAnimation()
+            progressWhenInterrupted[animator] = animator.fractionComplete
         }
     }
     
     func updateInteractiveTransition(fractionComplete: CGFloat) {
+        print("fraction is \(fractionComplete)")
         for animator in runningAnimators {
             animator.fractionComplete = fractionComplete
         }
@@ -109,19 +115,26 @@
     }
     
     func handleTap(recognizer: UITapGestureRecognizer) {
-        animateOrReverseRunningTransition(state: state, duration: 0.5)
+        animateOrReverseRunningTransition(state: state, duration: 5.0)
     }
     
-    func handlePan(state: UIGestureRecognizer.State, translation: CGPoint) {
+    func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint) {
         guard let master = masterViewController else {
             return
         }
         
-        switch state {
+        switch gestureState {
         case .began:
-            startInteractiveTransition(state: self.state, duration: 0.5)
+            startInteractiveTransition(state: state, duration: 0.5)
         case .changed:
-            updateInteractiveTransition(fractionComplete: 0.0)
+            switch state {
+            case .collapsed:
+                let fractionComplete = (-translation.y + 50.0) / master.view.frame.height
+                updateInteractiveTransition(fractionComplete: fractionComplete)
+            case .expanded:
+                let fractionComplete = (translation.y + 50.0) / master.view.frame.height
+                updateInteractiveTransition(fractionComplete: fractionComplete)
+            }
         case .ended:
             continueInteractiveTransition(cancel: false)
         default:
@@ -194,7 +207,7 @@
     
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
         if let coordinator = self.coordinator {
-            coordinator.handlePan(state: recognizer.state, translation: recognizer.translation(in: view))
+            coordinator.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view))
         }
     }
  }
@@ -242,7 +255,8 @@
  PlaygroundPage.current.needsIndefiniteExecution = true
  
  let detail = DetailViewController()
- master.view.addSubview(detail.view)
+ master.addChild(detail)
+ //master.view.addSubview(detail.view)
  detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - 50)
  let coordinator = AnimationCoordinator(withMasterVC: master, andDetailVC: detail)
  master.coordinator = coordinator
