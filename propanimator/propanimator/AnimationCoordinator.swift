@@ -28,7 +28,6 @@ final class AnimationCoordinator {
         }
     }
     private var initialAnimationDirection: AnimationDirection = .undefined
-    private var currentAnimationDirection: AnimationDirection = .undefined
     //state of detail controller
     enum DetailControllerState {
         case collapsed, expanded
@@ -67,29 +66,24 @@ final class AnimationCoordinator {
             }
             animator = UIViewPropertyAnimator(duration: duration, dampingRatio: 1, animations: animatorFunction)
             animator!.addCompletion {
-                [unowned self, currentAnimationDirection = self.currentAnimationDirection] (position) -> Void in
-                if position == UIViewAnimatingPosition.end {
-                    //checking current animation velocity
-                    //this is case when there were no pan gesture, just tap gesture
-                    if currentAnimationDirection == .undefined {
-                        self.state = self.state.inversed
-                    }
-                    //if we were at collapsed state, then panned up, then panned down
-                    //the state should be the same
-                    //otherwise if we were at .collapsed state, then just panned up
-                    //the state should become .expanded
-                    if self.state == .collapsed && currentAnimationDirection == .up {
-                        self.state = .expanded
-                    }
-                    if self.state == .expanded && currentAnimationDirection == .down {
-                        self.state = .collapsed
-                    }
-                    //nulling directions
-                    self.initialAnimationDirection = .undefined
-                    self.currentAnimationDirection = .undefined
-                    //nulling animator
-                    self.animator = nil
+                [unowned self] (position) -> Void in
+                switch position {
+                case .start:
+                    //guess animation is reversed and we returned to starting state
+                    //so just do nothing
+                    break
+                case .end:
+                    //just switchng self state
+                    self.state = self.state.inversed
+                default:
+                    break
                 }
+                //nulling directions
+                self.initialAnimationDirection = .undefined
+                //erasing progress when interrupted
+                self.progressWhenInterrupted = 0.0
+                //nulling animator
+                self.animator = nil
             }
             animator!.startAnimation()
         }
@@ -123,7 +117,6 @@ final class AnimationCoordinator {
         if initialAnimationDirection == .undefined {
             initialAnimationDirection = AnimationDirection(fromVelocity: velocity)
         }
-        currentAnimationDirection = AnimationDirection(fromVelocity: velocity)
         
         var fractionComplete: CGFloat = 0.0
         
@@ -144,19 +137,26 @@ final class AnimationCoordinator {
     }
     
     //finish animation when user finished pan
-    func continueInteractiveTransition(velocity: CGPoint) {
-        guard let animator = self.animator else {return}
-        if abs(velocity.y) < 1E-3 {
-            let timing = UICubicTimingParameters(animationCurve: .easeIn)
-            animator.continueAnimation(withTimingParameters: timing, durationFactor: 0)
-            return
-        }
+    func continueInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
+        guard let animator = self.animator,
+        let masterHeight = masterViewController?.view.bounds.height
+            else {return}
         
+        //checking whether user moved detail view less than 50%
+        let fractionComplete: CGFloat = abs(translation.y / (masterHeight - startingOffset))
+        let gestureIsIncomplete = fractionComplete < 0.5
+        
+        //user panned finger in opposite direction
         let isOpposite = initialAnimationDirection.isOppositeVelocity(velocity: velocity)
-        if isOpposite && !animator.isReversed {
+        
+        //reversing animator is user panned finger in opposite direction or if detail view
+        //moved less than 50%
+        if (isOpposite || gestureIsIncomplete) && !animator.isReversed {
             animator.isReversed = !animator.isReversed
-        } else if !isOpposite && animator.isReversed {
+            animator.fractionComplete = 1.0 - animator.fractionComplete
+        } else if !isOpposite && !gestureIsIncomplete && animator.isReversed {
             animator.isReversed = !animator.isReversed
+            animator.fractionComplete = 1.0 - animator.fractionComplete
         }
         let timing = UICubicTimingParameters(animationCurve: .easeIn)
         animator.continueAnimation(withTimingParameters: timing, durationFactor: 0)
@@ -175,7 +175,7 @@ final class AnimationCoordinator {
         case .changed:
             updateInteractiveTransition(translation: translation, velocity: velocity)
         case .ended:
-            continueInteractiveTransition(velocity: velocity)
+            continueInteractiveTransition(translation: translation, velocity: velocity)
         default:
             break
         }
