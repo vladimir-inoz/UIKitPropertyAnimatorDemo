@@ -31,7 +31,11 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
     }
     
     func setupCoordinators() {
-        let springTimingParameters = UIViewPropertyAnimator(duration: 1.0, dampingRatio: 2.0, animations: nil).timingParameters!
+        let springTimingParameters = UISpringTimingParameters(dampingRatio: 2.0)
+        let customCollapsingTimingParameters = UICubicTimingParameters(controlPoint1: CGPoint(x: 0.1, y: 0.75),
+                                                                      controlPoint2: CGPoint(x: 0.25, y: 0.9))
+        let customExpandingTimingParameters = UICubicTimingParameters(controlPoint1: CGPoint(x: 0.75, y: 0.1),
+                                                                      controlPoint2: CGPoint(x: 0.9, y: 0.25))
         
         let collapsing = {
             [unowned self, unowned detail = self.detail, unowned master = self.master] in
@@ -43,17 +47,28 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         }
         let blur = {
             [unowned master = self.master] in
-            let blurEffect = UIBlurEffect(style: .prominent)
-            master.effectView.effect = blurEffect
+            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
+                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
+                    let blurEffect = UIBlurEffect(style: .prominent)
+                    master.effectView.effect = blurEffect
+                }
+            }, completion: nil)
         }
         let noBlur = {
             [unowned master = self.master] in
-            master.effectView.effect = nil
+            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
+                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
+                    master.effectView.effect = nil
+                }
+            }, completion: nil)
         }
         
-        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: expanding, collapsingAnimation: collapsing, timingParameters: springTimingParameters)
+        let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
+        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
+        
+        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: panParameters)
         coordinators.append(positionCoordinator)
-        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, expandingAnimation: blur, collapsingAnimation: noBlur, timingParameters: springTimingParameters)
+        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: blurParameters)
         coordinators.append(blurCoordinator)
     }
     

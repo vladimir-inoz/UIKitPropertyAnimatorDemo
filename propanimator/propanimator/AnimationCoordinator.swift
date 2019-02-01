@@ -1,10 +1,11 @@
 import UIKit
 
 //Struct that stores parameter of one animation
-struct Animation {
+struct AnimationParameters {
     let expandingAnimation: () -> Void
     let collapsingAnimation: () -> Void
-    let duration: CGFloat
+    let duration: TimeInterval
+    let scrubsLinearly: Bool
     let expandingTimeParameters: UITimingCurveProvider
     let collapsingTimeParameters: UITimingCurveProvider
 }
@@ -18,8 +19,6 @@ struct Animation {
 final class AnimationCoordinator {
     //our controlled animator
     private var animator: UIViewPropertyAnimator?
-    //timing parameters
-    private let timingParameters: UITimingCurveProvider
     //progress of animation when user 'captured' it with pan gesture
     private var progressWhenInterrupted: CGFloat = 0.0
     //height of master view controller
@@ -58,29 +57,30 @@ final class AnimationCoordinator {
         }
     }
     private var state: DetailControllerState = .collapsed
-    //stored animations
-    let expandingAnimation: () -> Void
-    let collapsingAnimation: () -> Void
+    //stored animation parameters
+    private let animationParameters: AnimationParameters
     
-    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, expandingAnimation: @escaping () -> Void, collapsingAnimation: @escaping () -> Void, timingParameters: UITimingCurveProvider) {
+    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, animationParameters: AnimationParameters) {
         masterHeight = height
         startingOffset = offset
-        self.expandingAnimation = expandingAnimation
-        self.collapsingAnimation = collapsingAnimation
-        self.timingParameters = timingParameters
+        self.animationParameters = animationParameters
     }
     
     //Perform animation with animator if not already running
-    func animateTransitionIfNeeded(state: DetailControllerState, duration: TimeInterval) {
+    func animateTransitionIfNeeded(state: DetailControllerState) {
         if animator == nil {
             var animatorFunction: () -> Void
+            var timingParameters: UITimingCurveProvider
             switch state {
             case .expanded:
-                animatorFunction = collapsingAnimation
+                animatorFunction = animationParameters.expandingAnimation
+                timingParameters = animationParameters.expandingTimeParameters
             case .collapsed:
-                animatorFunction = expandingAnimation
+                animatorFunction = animationParameters.collapsingAnimation
+                timingParameters = animationParameters.collapsingTimeParameters
             }
-            animator = UIViewPropertyAnimator(duration: duration, timingParameters: timingParameters)
+            animator = UIViewPropertyAnimator(duration: animationParameters.duration, timingParameters: timingParameters)
+            animator!.scrubsLinearly = animationParameters.scrubsLinearly
             animator!.addAnimations(animatorFunction)
             animator!.addCompletion {
                 [unowned self] (position) -> Void in
@@ -111,7 +111,7 @@ final class AnimationCoordinator {
         if let animator = self.animator {
             animator.isReversed = !animator.isReversed
         } else {
-            animateTransitionIfNeeded(state: state, duration: duration)
+            animateTransitionIfNeeded(state: state)
         }
     }
     
@@ -119,7 +119,7 @@ final class AnimationCoordinator {
         if let animator = self.animator {
             progressWhenInterrupted = animator.fractionComplete
         } else {
-            animateTransitionIfNeeded(state: state, duration: duration)
+            animateTransitionIfNeeded(state: state)
         }
         animator!.pauseAnimation()
     }
@@ -159,15 +159,25 @@ final class AnimationCoordinator {
         //user panned finger in opposite direction
         let isOpposite = initialAnimationDirection.isOppositeVelocity(velocity: velocity)
         
+        var timingParameters: UITimingCurveProvider!
+        func switchAnimator() {
+            animator.isReversed = !animator.isReversed
+            animator.fractionComplete = 1.0 - animator.fractionComplete
+            if animator.timingParameters === animationParameters.expandingTimeParameters {
+                timingParameters = animationParameters.collapsingTimeParameters
+            } else {
+                timingParameters = animationParameters.expandingTimeParameters
+            }
+        }
+        
         //reversing animator is user panned finger in opposite direction or if detail view
         //moved less than 50%
         if (isOpposite || gestureIsIncomplete) && !animator.isReversed {
-            animator.isReversed = !animator.isReversed
-            animator.fractionComplete = 1.0 - animator.fractionComplete
+            switchAnimator()
         } else if !isOpposite && !gestureIsIncomplete && animator.isReversed {
-            animator.isReversed = !animator.isReversed
-            animator.fractionComplete = 1.0 - animator.fractionComplete
+            switchAnimator()
         }
+        //deciding which timing parameters to use
         animator.continueAnimation(withTimingParameters: timingParameters, durationFactor: 0)
     }
     
