@@ -1,5 +1,14 @@
 import UIKit
 
+//Struct that stores parameter of one animation
+struct Animation {
+    let expandingAnimation: () -> Void
+    let collapsingAnimation: () -> Void
+    let duration: CGFloat
+    let expandingTimeParameters: UITimingCurveProvider
+    let collapsingTimeParameters: UITimingCurveProvider
+}
+
 /*
  This class receives events from pan and touch gesture recognizers
  And controls corresponding UIViewPropertyAnimator
