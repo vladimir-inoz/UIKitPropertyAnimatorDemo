@@ -47,20 +47,12 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         }
         let blur = {
             [unowned master = self.master] in
-            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
-                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
-                    let blurEffect = UIBlurEffect(style: .prominent)
-                    master.effectView.effect = blurEffect
-                }
-            }, completion: nil)
+            let blurEffect = UIBlurEffect(style: .prominent)
+            master.effectView.effect = blurEffect
         }
         let noBlur = {
             [unowned master = self.master] in
-            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
-                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
-                    master.effectView.effect = nil
-                }
-            }, completion: nil)
+            master.effectView.effect = nil
         }
         
         let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
