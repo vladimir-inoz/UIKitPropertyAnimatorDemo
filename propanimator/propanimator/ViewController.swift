@@ -7,7 +7,7 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
     var coordinators = [AnimationCoordinator]()
     lazy var master = MasterViewController()
     lazy var detail = DetailViewController()
-    let detailViewOffset:CGFloat = 100
+    let detailViewOffset: CGFloat = 50.0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,9 +25,12 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         
         master.view.addSubview(detail.view)
         
-        detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.frame.height - detailViewOffset)
-        
         setupCoordinators()
+    }
+    
+    override func viewDidLayoutSubviews() {
+        //setting up initial frame of detailViewController here because bounds of masterViewController are valid only here
+        detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.bounds.height - detailViewOffset)
     }
     
     func setupCoordinators() {
@@ -39,28 +42,20 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         
         let collapsing = {
             [unowned self, unowned detail = self.detail, unowned master = self.master] in
-            detail.view.frame = master.view.frame.offsetBy(dx: 0.0, dy: master.view.frame.height - self.detailViewOffset)
+            detail.view.frame = master.view.bounds.offsetBy(dx: 0.0, dy: master.view.bounds.height - self.detailViewOffset)
         }
         let expanding = {
             [unowned detail = self.detail, unowned master = self.master] in
-            detail.view.frame = master.view.frame
+            detail.view.frame = master.view.bounds
         }
         let blur = {
             [unowned master = self.master] in
-            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
-                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
-                    let blurEffect = UIBlurEffect(style: .prominent)
-                    master.effectView.effect = blurEffect
-                }
-            }, completion: nil)
+            let blurEffect = UIBlurEffect(style: .prominent)
+            master.effectView.effect = blurEffect
         }
         let noBlur = {
             [unowned master = self.master] in
-            UIView.animateKeyframes(withDuration: 0.0, delay: 0.0, options: [], animations: {
-                UIView.addKeyframe(withRelativeStartTime: 0.4, relativeDuration: 0.5) {
-                    master.effectView.effect = nil
-                }
-            }, completion: nil)
+            master.effectView.effect = nil
         }
         
         let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)

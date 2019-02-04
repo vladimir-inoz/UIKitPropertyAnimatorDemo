@@ -72,10 +72,10 @@ final class AnimationCoordinator {
             var animatorFunction: () -> Void
             var timingParameters: UITimingCurveProvider
             switch state {
-            case .expanded:
+            case .collapsed:
                 animatorFunction = animationParameters.expandingAnimation
                 timingParameters = animationParameters.expandingTimeParameters
-            case .collapsed:
+            case .expanded:
                 animatorFunction = animationParameters.collapsingAnimation
                 timingParameters = animationParameters.collapsingTimeParameters
             }
