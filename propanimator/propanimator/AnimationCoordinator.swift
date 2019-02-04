@@ -152,9 +152,12 @@ final class AnimationCoordinator {
     func continueInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
         guard let animator = self.animator else {return}
         
-        //checking whether user moved detail view less than 50%
-        let fractionComplete: CGFloat = abs(translation.y / (masterHeight - startingOffset))
-        let gestureIsIncomplete = fractionComplete < 0.5
+        //gesture is considered incomplete if user starts swiping up and detail
+        //view is moved less than double height of header
+        var gestureIsIncomplete: Bool = false
+        if self.state == .collapsed && abs(translation.y) < startingOffset * 2.0 {
+            gestureIsIncomplete = true
+        }
         
         //user panned finger in opposite direction
         let isOpposite = initialAnimationDirection.isOppositeVelocity(velocity: velocity)
@@ -162,7 +165,6 @@ final class AnimationCoordinator {
         var timingParameters: UITimingCurveProvider!
         func switchAnimator() {
             animator.isReversed = !animator.isReversed
-            animator.fractionComplete = 1.0 - animator.fractionComplete
             if animator.timingParameters === animationParameters.expandingTimeParameters {
                 timingParameters = animationParameters.collapsingTimeParameters
             } else {
