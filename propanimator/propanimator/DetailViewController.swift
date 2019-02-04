@@ -40,9 +40,10 @@ class DetailViewController: UIViewController {
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         containerView.addGestureRecognizer(tapGestureRecognizer)
         let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
-        containerView.addGestureRecognizer(panGestureRecognizer)
-        
-        
+        view.addGestureRecognizer(panGestureRecognizer)
+        let tableViewPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
+        tableView.addGestureRecognizer(tableViewPanGesture)
+        tableViewPanGesture.delegate = self
         
         //setting animating closures
         expandTopView = {
@@ -107,5 +108,15 @@ class DetailViewController: UIViewController {
     
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
         delegate?.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view), velocity: recognizer.velocity(in: view))
+    }
+}
+
+extension DetailViewController: UIGestureRecognizerDelegate {
+    //We enable for pan gesture recognizer to act only when table view is scrolled to top
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let recognizer = gestureRecognizer as? UIPanGestureRecognizer else {
+            return false
+        }
+        return (tableView.contentOffset.y == 0) && (recognizer.velocity(in: tableView).y > 0)
     }
 }
