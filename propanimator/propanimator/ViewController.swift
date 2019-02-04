@@ -39,6 +39,8 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
                                                                       controlPoint2: CGPoint(x: 0.25, y: 0.9))
         let customExpandingTimingParameters = UICubicTimingParameters(controlPoint1: CGPoint(x: 0.75, y: 0.1),
                                                                       controlPoint2: CGPoint(x: 0.9, y: 0.25))
+        let easeInTimingParameters = UICubicTimingParameters(animationCurve: .easeIn)
+        let easeOutTimingParameters = UICubicTimingParameters(animationCurve: .easeOut)
         
         let collapsing = {
             [unowned self, unowned detail = self.detail, unowned master = self.master] in
@@ -60,11 +62,14 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         
         let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
         let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
+        let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, duration: 1.0, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
         
         let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: panParameters)
         coordinators.append(positionCoordinator)
         let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: blurParameters)
         coordinators.append(blurCoordinator)
+        let detailHeadCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: detailHeadParameters)
+        coordinators.append(detailHeadCoordinator)
     }
     
     //MARK: - Detail view controller delegate

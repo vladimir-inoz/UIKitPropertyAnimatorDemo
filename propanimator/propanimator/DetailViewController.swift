@@ -11,21 +11,54 @@ class DetailViewController: UIViewController {
     }()
     private lazy var topView: UIView = {
         let containerView = UIView(frame: CGRect.zero)
-        containerView.backgroundColor = UIColor(red: 0.627, green: 0.514, blue: 0.514, alpha: 1.0)
+        containerView.backgroundColor = UIColor.white
         
-        let label = UILabel(frame: CGRect.zero)
-        label.text = "Detail view controller"
-        containerView.addSubview(label)
+        let labelSmall = UILabel(frame: CGRect.zero)
+        labelSmall.text = "Comments"
+        labelSmall.textColor = UIColor.blue
+        labelSmall.sizeToFit()
+        containerView.addSubview(labelSmall)
         
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.centerXAnchor.constraint(equalTo: containerView.centerXAnchor).isActive = true
-        label.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+        labelSmall.translatesAutoresizingMaskIntoConstraints = false
+        labelSmall.centerXAnchor.constraint(equalTo: containerView.centerXAnchor).isActive = true
+        labelSmall.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
+        
+        let labelBig = UILabel(frame: CGRect.zero)
+        labelBig.text = "Comments"
+        labelBig.font = UIFont.systemFont(ofSize: 30.0)
+        labelBig.sizeToFit()
+        containerView.addSubview(labelBig)
+        labelBig.alpha = 0.0
+        let ratio: CGFloat = (labelBig.bounds.height / labelSmall.bounds.height) * 0.971
+        labelBig.transform = CGAffineTransform(scaleX: 1/ratio, y: 1/ratio)
+        
+        labelBig.translatesAutoresizingMaskIntoConstraints = false
+        labelBig.centerXAnchor.constraint(equalTo: containerView.centerXAnchor).isActive = true
+        labelBig.centerYAnchor.constraint(equalTo: containerView.centerYAnchor).isActive = true
         
         //adding two gesture recognizers
         let tapGestureRecognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
         containerView.addGestureRecognizer(tapGestureRecognizer)
         let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         containerView.addGestureRecognizer(panGestureRecognizer)
+        
+        
+        
+        //setting animating closures
+        expandTopView = {
+            labelBig.transform = .identity
+            labelSmall.transform = CGAffineTransform(scaleX: ratio, y: ratio).concatenating(CGAffineTransform(translationX: 0, y: 0))
+            
+            labelBig.alpha = 1.0
+            labelSmall.alpha = 0.0
+        }
+        collapseTopView = {
+            labelBig.transform = CGAffineTransform(scaleX: 1/ratio, y: 1/ratio).concatenating(CGAffineTransform(translationX: 0, y: -0))
+            labelSmall.transform = .identity
+            
+            labelBig.alpha = 0.0
+            labelSmall.alpha = 1.0
+        }
         return containerView
     }()
     private lazy var tableView: UITableView = {
@@ -35,6 +68,9 @@ class DetailViewController: UIViewController {
         return table
     }()
     public weak var delegate: DetailViewControllerDelegate?
+    ///Animating closures
+    public private(set) var expandTopView: (() -> Void)!
+    public private(set) var collapseTopView: (() -> Void)!
     
     override func viewDidLoad() {
         super.viewDidLoad()
