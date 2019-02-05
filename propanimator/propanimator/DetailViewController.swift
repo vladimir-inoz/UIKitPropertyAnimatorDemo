@@ -5,7 +5,7 @@ protocol DetailViewControllerDelegate: AnyObject {
     func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint, velocity: CGPoint)
 }
 
-class DetailViewController: UIViewController {
+class DetailViewController: UIViewController, UIScrollViewDelegate {
     private lazy var dataSource = {
         return SampleTableDataSource()
     }()
@@ -41,9 +41,6 @@ class DetailViewController: UIViewController {
         containerView.addGestureRecognizer(tapGestureRecognizer)
         let panGestureRecognizer = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
         view.addGestureRecognizer(panGestureRecognizer)
-        let tableViewPanGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan))
-        tableView.addGestureRecognizer(tableViewPanGesture)
-        tableViewPanGesture.delegate = self
         
         //setting animating closures
         expandTopView = {
@@ -65,6 +62,8 @@ class DetailViewController: UIViewController {
     private lazy var tableView: UITableView = {
         let table = UITableView(frame: CGRect.zero, style: .plain)
         table.dataSource = dataSource
+        table.panGestureRecognizer.addTarget(self, action: #selector(handlePanFromTableView))
+        (table as UIScrollView).delegate = self
         table.register(UITableViewCell.self, forCellReuseIdentifier: "PlainCell")
         return table
     }()
@@ -109,14 +108,25 @@ class DetailViewController: UIViewController {
     @objc func handlePan(recognizer: UIPanGestureRecognizer) {
         delegate?.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view), velocity: recognizer.velocity(in: view))
     }
-}
-
-extension DetailViewController: UIGestureRecognizerDelegate {
-    //We enable for pan gesture recognizer to act only when table view is scrolled to top
-    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard let recognizer = gestureRecognizer as? UIPanGestureRecognizer else {
-            return false
+    
+    //if tableView is scrolled to top, we send handle tableView's pan gesture recognizer in delegate
+    @objc func handlePanFromTableView(recognizer: UIPanGestureRecognizer) {
+        guard tableView.contentOffset.y <= 0.0 else {
+            return
         }
-        return (tableView.contentOffset.y == 0) && (recognizer.velocity(in: tableView).y > 0)
+        let isCollapsingGesture = (recognizer.velocity(in: tableView).y > 0)
+        let frameTransition = (view.frame.origin.y > 5.0)
+        //we enable superview animation if:
+        //1. tableView is scrolled to top and user continues to swipe downwards
+        //2. tableView is scrolled to top, user swipes upwards and view isn't expanded totally
+        if (isCollapsingGesture) || (!isCollapsingGesture && frameTransition) {
+            delegate?.handlePan(gestureState: recognizer.state, translation: recognizer.translation(in: view), velocity: recognizer.velocity(in: view))
+        }
+    }
+    
+   //MARK: - Scroll view delegate
+    //Disable bounce on top of scroll
+    func scrollViewDidScroll(_ scrollView: UIScrollView) {
+        scrollView.bounces = (scrollView.contentOffset.y > 0)
     }
 }
