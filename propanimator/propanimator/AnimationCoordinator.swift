@@ -55,17 +55,17 @@ final class AnimationCoordinator {
         self.animationParameters = animationParameters
     }
     
-    //Perform animation with animator if not already running
-    func initializeAnimators(state: DetailControllerState) {
+    //Initialize animators to transition to needed state
+    func initializeAnimators(to targetState: DetailControllerState) {
         //initialize animators
         animators = animationParameters.map {
             var animatorFunction: () -> Void
             var timingParameters: UITimingCurveProvider
-            switch state {
-            case .collapsed:
+            switch targetState {
+            case .expanded:
                 animatorFunction = $0.expandingAnimation
                 timingParameters = $0.expandingTimeParameters
-            case .expanded:
+            case .collapsed:
                 animatorFunction = $0.collapsingAnimation
                 timingParameters = $0.collapsingTimeParameters
             }
@@ -87,23 +87,28 @@ final class AnimationCoordinator {
                 //guess animation is reversed and we returned to starting state
                 //so just do nothing
                 print("completion with .start with state \(self.state)")
+                self.state = targetState.inversed
                 break
             case .end:
                 //just switchng self state
-                self.state = self.state.inversed
+                self.state = targetState
                 print("completion with reversed=\(self.animators.first!.isReversed) .end with state \(self.state.inversed) -> \(self.state)")
             case .current:
                 print("completion with .current")
             }
             //nulling animators
+            self.animators.dropFirst().forEach {
+                $0.stopAnimation(false)
+                $0.finishAnimation(at: position)
+            }
             self.animators.removeAll()
         }
         
         //don't forget to initialize animation direction
-        switch state {
-        case .collapsed:
-            initialAnimationDirection = .up
+        switch targetState {
         case .expanded:
+            initialAnimationDirection = .up
+        case .collapsed:
             initialAnimationDirection = .down
         }
         
@@ -112,17 +117,17 @@ final class AnimationCoordinator {
     }
     
     //Starts transition if necessary or recerses it on tap
-    func animateOrReverseRunningTransition(state: DetailControllerState, duration: TimeInterval) {
+    func animateOrReverseRunningTransition(to state: DetailControllerState, duration: TimeInterval) {
         if !animators.isEmpty {
             animators.forEach {$0.isReversed = !$0.isReversed}
         } else {
-            initializeAnimators(state: state)
+            initializeAnimators(to: state)
         }
     }
     
-    func startInteractiveTransition(state: DetailControllerState, duration: TimeInterval) {
+    func startInteractiveTransition(to state: DetailControllerState, duration: TimeInterval) {
         if animators.isEmpty {
-            initializeAnimators(state: state)
+            initializeAnimators(to: state)
         }
         animators.forEach {$0.pauseAnimation()}
         progressWhenInterrupted = animators.map{return $0.fractionComplete}
@@ -154,7 +159,7 @@ final class AnimationCoordinator {
         //view is moved less than double height of header
         var gestureIsIncomplete: Bool = false
         if self.state == .collapsed && abs(translation.y) < startingOffset * 2.0 {
-            gestureIsIncomplete = false
+            gestureIsIncomplete = true
         }
         
         if velocity.y == 0 {
@@ -177,12 +182,12 @@ final class AnimationCoordinator {
             
             switch state {
             case .collapsed:
-                if velocity.y > 0 && !animator.isReversed {print("switch1 \(velocity.y)");switchAnimator();continue}
-                if velocity.y < 0 && animator.isReversed {print("switch2 \(velocity.y)");switchAnimator();continue}
+                if velocity.y > 0 && !animator.isReversed {switchAnimator()}
+                if velocity.y < 0 && animator.isReversed {switchAnimator()}
                 if gestureIsIncomplete {switchAnimator()}
             case .expanded:
-                if velocity.y > 0 && animator.isReversed {print("switch3 \(velocity.y)");switchAnimator();continue}
-                if velocity.y < 0 && !animator.isReversed {print("switch4 \(velocity.y)");switchAnimator();continue}
+                if velocity.y > 0 && animator.isReversed {switchAnimator()}
+                if velocity.y < 0 && !animator.isReversed {switchAnimator()}
             }
             //deciding which timing parameters to use
             animator.continueAnimation(withTimingParameters: nil, durationFactor: 0)
@@ -192,13 +197,13 @@ final class AnimationCoordinator {
     //MARK: - Gesture recognizers handlers
     
     func handleTap() {
-        animateOrReverseRunningTransition(state: state, duration: 1.0)
+        animateOrReverseRunningTransition(to: state.inversed, duration: 1.0)
     }
     
     func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint, velocity: CGPoint) {
         switch gestureState {
         case .began:
-            startInteractiveTransition(state: state, duration: 1.0)
+            startInteractiveTransition(to: state.inversed, duration: 1.0)
         case .changed:
             updateInteractiveTransition(translation: translation, velocity: velocity)
         case .ended, .cancelled:
