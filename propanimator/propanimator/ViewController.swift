@@ -61,7 +61,7 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
         }
         
         let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
-        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
+        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, scrubsLinearly: false, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
         let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
         
         coordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, duration: 1.0, animationParameters: [panParameters, blurParameters, detailHeadParameters])
