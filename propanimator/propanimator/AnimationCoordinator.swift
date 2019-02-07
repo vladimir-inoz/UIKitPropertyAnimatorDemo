@@ -17,10 +17,10 @@ struct AnimationParameters {
  You should provide timing parameters
  */
 final class AnimationCoordinator {
-    //our controlled animator
-    private var animator: UIViewPropertyAnimator?
+    //our controlled animators
+    private var animators = [UIViewPropertyAnimator]()
     //progress of animation when user 'captured' it with pan gesture
-    private var progressWhenInterrupted: CGFloat = 0.0
+    private var progressWhenInterrupted = [CGFloat]()
     //height of master view controller
     private let masterHeight: CGFloat
     //visible height of detail view controller from start
@@ -30,17 +30,6 @@ final class AnimationCoordinator {
         case up, down, undefined
         init(fromVelocity velocity: CGPoint) {
             self = velocity.y < 0 ? .up : .down
-        }
-        //whether current speed is opposite to self
-        func isOppositeVelocity(velocity: CGPoint) -> Bool {
-            switch self {
-            case .up:
-                return velocity.y > 0
-            case .down:
-                return velocity.y < 0
-            case .undefined:
-                return false
-            }
         }
     }
     private var initialAnimationDirection: AnimationDirection = .undefined
@@ -58,80 +47,89 @@ final class AnimationCoordinator {
     }
     private var state: DetailControllerState = .collapsed
     //stored animation parameters
-    private let animationParameters: AnimationParameters
+    private let animationParameters: [AnimationParameters]
     
-    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, animationParameters: AnimationParameters) {
+    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, animationParameters: [AnimationParameters]) {
         masterHeight = height
         startingOffset = offset
         self.animationParameters = animationParameters
     }
     
     //Perform animation with animator if not already running
-    func animateTransitionIfNeeded(state: DetailControllerState) {
-        if animator == nil {
+    func initializeAnimators(state: DetailControllerState) {
+        //initialize animators
+        animators = animationParameters.map {
             var animatorFunction: () -> Void
             var timingParameters: UITimingCurveProvider
             switch state {
             case .collapsed:
-                animatorFunction = animationParameters.expandingAnimation
-                timingParameters = animationParameters.expandingTimeParameters
+                animatorFunction = $0.expandingAnimation
+                timingParameters = $0.expandingTimeParameters
             case .expanded:
-                animatorFunction = animationParameters.collapsingAnimation
-                timingParameters = animationParameters.collapsingTimeParameters
+                animatorFunction = $0.collapsingAnimation
+                timingParameters = $0.collapsingTimeParameters
             }
-            animator = UIViewPropertyAnimator(duration: animationParameters.duration, timingParameters: timingParameters)
-            animator!.scrubsLinearly = animationParameters.scrubsLinearly
-            animator!.addAnimations(animatorFunction)
-            animator!.addCompletion {
-                [unowned self] (position) -> Void in
-                switch position {
-                case .start:
-                    //guess animation is reversed and we returned to starting state
-                    //so just do nothing
-                    break
-                case .end:
-                    //just switchng self state
-                    self.state = self.state.inversed
-                default:
-                    break
-                }
-                //nulling directions
-                self.initialAnimationDirection = .undefined
-                //erasing progress when interrupted
-                self.progressWhenInterrupted = 0.0
-                //nulling animator
-                self.animator = nil
-            }
-            animator!.startAnimation()
+            let animator = UIViewPropertyAnimator(duration: $0.duration, timingParameters: timingParameters)
+            animator.scrubsLinearly = $0.scrubsLinearly
+            animator.addAnimations(animatorFunction)
+            return animator
         }
+        //add completion to only first animator
+        animators.first?.addCompletion {
+            [unowned self] (position) -> Void in
+            //nulling directions
+            self.initialAnimationDirection = .undefined
+            //erasing progress when interrupted
+            self.progressWhenInterrupted = [CGFloat]()
+            //switching position if it was last animator
+            switch position {
+            case .start:
+                //guess animation is reversed and we returned to starting state
+                //so just do nothing
+                print("completion with .start with state \(self.state)")
+                break
+            case .end:
+                //just switchng self state
+                self.state = self.state.inversed
+                print("completion with reversed=\(self.animators.first!.isReversed) .end with state \(self.state.inversed) -> \(self.state)")
+            case .current:
+                print("completion with .current")
+            }
+            //nulling animators
+            self.animators.removeAll()
+        }
+        
+        //don't forget to initialize animation direction
+        switch state {
+        case .collapsed:
+            initialAnimationDirection = .up
+        case .expanded:
+            initialAnimationDirection = .down
+        }
+        
+        //start animation
+        animators.forEach { $0.startAnimation() }
     }
     
     //Starts transition if necessary or recerses it on tap
     func animateOrReverseRunningTransition(state: DetailControllerState, duration: TimeInterval) {
-        if let animator = self.animator {
-            animator.isReversed = !animator.isReversed
+        if !animators.isEmpty {
+            animators.forEach {$0.isReversed = !$0.isReversed}
         } else {
-            animateTransitionIfNeeded(state: state)
+            initializeAnimators(state: state)
         }
     }
     
     func startInteractiveTransition(state: DetailControllerState, duration: TimeInterval) {
-        if let animator = self.animator {
-            progressWhenInterrupted = animator.fractionComplete
-        } else {
-            animateTransitionIfNeeded(state: state)
+        if animators.isEmpty {
+            initializeAnimators(state: state)
         }
-        animator!.pauseAnimation()
+        animators.forEach {$0.pauseAnimation()}
+        progressWhenInterrupted = animators.map{return $0.fractionComplete}
     }
     
     //update animation when user pans
     func updateInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
-        guard let animator = self.animator else { return }
-        
-        if initialAnimationDirection == .undefined {
-            initialAnimationDirection = AnimationDirection(fromVelocity: velocity)
-        }
-        
         var fractionComplete: CGFloat = 0.0
         
         switch initialAnimationDirection {
@@ -143,44 +141,52 @@ final class AnimationCoordinator {
             break
         }
         
-        //substracting the fraction if the animator is reversed
-        if animator.isReversed {fractionComplete *= -1}
-        animator.fractionComplete = fractionComplete + progressWhenInterrupted
+        for (index, animator) in animators.enumerated() {
+            //substracting the fraction if the animator is reversed
+            if animator.isReversed {fractionComplete *= -1}
+            animator.fractionComplete = fractionComplete + progressWhenInterrupted[index]
+        }
     }
     
     //finish animation when user finished pan
     func continueInteractiveTransition(translation: CGPoint, velocity: CGPoint) {
-        guard let animator = self.animator else {return}
-        
         //gesture is considered incomplete if user starts swiping up and detail
         //view is moved less than double height of header
         var gestureIsIncomplete: Bool = false
         if self.state == .collapsed && abs(translation.y) < startingOffset * 2.0 {
-            gestureIsIncomplete = true
+            gestureIsIncomplete = false
         }
         
-        //user panned finger in opposite direction
-        let isOpposite = initialAnimationDirection.isOppositeVelocity(velocity: velocity)
+        if velocity.y == 0 {
+            //no explicit velocity, just continue animations
+            animators.forEach({$0.continueAnimation(withTimingParameters: nil, durationFactor: 0)})
+            return
+        }
         
-        var timingParameters: UITimingCurveProvider!
-        func switchAnimator() {
-            animator.isReversed = !animator.isReversed
-            if animator.timingParameters === animationParameters.expandingTimeParameters {
-                timingParameters = animationParameters.collapsingTimeParameters
-            } else {
-                timingParameters = animationParameters.expandingTimeParameters
+        for (index, animator) in animators.enumerated() {
+            var timingParameters: UITimingCurveProvider!
+            func switchAnimator() {
+                animator.isReversed = !animator.isReversed
+                if animator.timingParameters === animationParameters[index].expandingTimeParameters {
+                    timingParameters = animationParameters[index].collapsingTimeParameters
+                } else {
+                    timingParameters = animationParameters[index].expandingTimeParameters
+                }
+                animator.continueAnimation(withTimingParameters: timingParameters, durationFactor: 0)
             }
+            
+            switch state {
+            case .collapsed:
+                if velocity.y > 0 && !animator.isReversed {print("switch1 \(velocity.y)");switchAnimator();continue}
+                if velocity.y < 0 && animator.isReversed {print("switch2 \(velocity.y)");switchAnimator();continue}
+                if gestureIsIncomplete {switchAnimator()}
+            case .expanded:
+                if velocity.y > 0 && animator.isReversed {print("switch3 \(velocity.y)");switchAnimator();continue}
+                if velocity.y < 0 && !animator.isReversed {print("switch4 \(velocity.y)");switchAnimator();continue}
+            }
+            //deciding which timing parameters to use
+            animator.continueAnimation(withTimingParameters: nil, durationFactor: 0)
         }
-        
-        //reversing animator is user panned finger in opposite direction or if detail view
-        //moved less than 50%
-        if (isOpposite || gestureIsIncomplete) && !animator.isReversed {
-            switchAnimator()
-        } else if !isOpposite && !gestureIsIncomplete && animator.isReversed {
-            switchAnimator()
-        }
-        //deciding which timing parameters to use
-        animator.continueAnimation(withTimingParameters: timingParameters, durationFactor: 0)
     }
     
     //MARK: - Gesture recognizers handlers
@@ -195,7 +201,7 @@ final class AnimationCoordinator {
             startInteractiveTransition(state: state, duration: 1.0)
         case .changed:
             updateInteractiveTransition(translation: translation, velocity: velocity)
-        case .ended:
+        case .ended, .cancelled:
             continueInteractiveTransition(translation: translation, velocity: velocity)
         default:
             break
