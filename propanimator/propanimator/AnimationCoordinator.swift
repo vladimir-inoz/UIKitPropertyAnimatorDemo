@@ -4,7 +4,6 @@ import UIKit
 struct AnimationParameters {
     let expandingAnimation: () -> Void
     let collapsingAnimation: () -> Void
-    let duration: TimeInterval
     let scrubsLinearly: Bool
     let expandingTimeParameters: UITimingCurveProvider
     let collapsingTimeParameters: UITimingCurveProvider
@@ -48,11 +47,14 @@ final class AnimationCoordinator {
     private var state: DetailControllerState = .collapsed
     //stored animation parameters
     private let animationParameters: [AnimationParameters]
+    //shared animation duration
+    private let duration: TimeInterval
     
-    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, animationParameters: [AnimationParameters]) {
-        masterHeight = height
-        startingOffset = offset
+    init(withMasterViewHeight height: CGFloat, andDetailViewOffset offset: CGFloat, duration: TimeInterval, animationParameters: [AnimationParameters]) {
+        self.masterHeight = height
+        self.startingOffset = offset
         self.animationParameters = animationParameters
+        self.duration = duration
     }
     
     //Initialize animators to transition to needed state
@@ -69,7 +71,7 @@ final class AnimationCoordinator {
                 animatorFunction = $0.collapsingAnimation
                 timingParameters = $0.collapsingTimeParameters
             }
-            let animator = UIViewPropertyAnimator(duration: $0.duration, timingParameters: timingParameters)
+            let animator = UIViewPropertyAnimator(duration: duration, timingParameters: timingParameters)
             animator.scrubsLinearly = $0.scrubsLinearly
             animator.addAnimations(animatorFunction)
             return animator

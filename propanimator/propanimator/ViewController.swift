@@ -60,11 +60,11 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
             master.effectView.effect = nil
         }
         
-        let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
-        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
-        let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, duration: 1.0, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
+        let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
+        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
+        let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
         
-        coordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: [panParameters, blurParameters, detailHeadParameters])
+        coordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, duration: 1.0, animationParameters: [panParameters, blurParameters, detailHeadParameters])
     }
     
     //MARK: - Detail view controller delegate
