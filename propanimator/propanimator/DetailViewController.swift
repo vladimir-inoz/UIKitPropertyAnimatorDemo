@@ -85,7 +85,7 @@ class DetailViewController: UIViewController, UIScrollViewDelegate {
         table.dataSource = dataSource
         table.panGestureRecognizer.addTarget(self, action: #selector(handlePanFromTableView))
         (table as UIScrollView).delegate = self
-        table.register(CommentCell.self, forCellReuseIdentifier: "PlainCell")
+        table.register(UITableViewCell.self, forCellReuseIdentifier: "PlainCell")
         return table
     }()
     public weak var delegate: DetailViewControllerDelegate?
