@@ -4,7 +4,7 @@ import UIKit
 ///And contains all animation coordinators
 class ViewController: UIViewController, DetailViewControllerDelegate {
     
-    var coordinators = [AnimationCoordinator]()
+    var coordinator: AnimationCoordinator!
     lazy var master = MasterViewController()
     lazy var detail = DetailViewController()
     let detailViewOffset: CGFloat = 50.0
@@ -60,29 +60,20 @@ class ViewController: UIViewController, DetailViewControllerDelegate {
             master.effectView.effect = nil
         }
         
-        let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
-        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, duration: 1.0, scrubsLinearly: true, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
-        let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, duration: 1.0, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
+        let panParameters = AnimationParameters(expandingAnimation: expanding, collapsingAnimation: collapsing, scrubsLinearly: true, expandingTimeParameters: springTimingParameters, collapsingTimeParameters: springTimingParameters)
+        let blurParameters = AnimationParameters(expandingAnimation: blur, collapsingAnimation: noBlur, scrubsLinearly: false, expandingTimeParameters: customExpandingTimingParameters, collapsingTimeParameters: customCollapsingTimingParameters)
+        let detailHeadParameters = AnimationParameters(expandingAnimation: detail.expandTopView, collapsingAnimation: detail.collapseTopView, scrubsLinearly: false, expandingTimeParameters: easeOutTimingParameters, collapsingTimeParameters: easeInTimingParameters)
         
-        let positionCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: panParameters)
-        coordinators.append(positionCoordinator)
-        let blurCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: blurParameters)
-        coordinators.append(blurCoordinator)
-        let detailHeadCoordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, animationParameters: detailHeadParameters)
-        coordinators.append(detailHeadCoordinator)
+        coordinator = AnimationCoordinator(withMasterViewHeight: master.view.bounds.height, andDetailViewOffset: detailViewOffset, duration: 1.0, animationParameters: [panParameters, blurParameters, detailHeadParameters])
     }
     
     //MARK: - Detail view controller delegate
     func handleTap() {
-        for coordinator in coordinators {
-            coordinator.handleTap()
-        }
+        coordinator.handleTap()
     }
     
     func handlePan(gestureState: UIGestureRecognizer.State, translation: CGPoint, velocity: CGPoint) {
-        for coordinator in coordinators {
-            coordinator.handlePan(gestureState: gestureState, translation: translation, velocity: velocity)
-        }
+        coordinator.handlePan(gestureState: gestureState, translation: translation, velocity: velocity)
     }
     
 }

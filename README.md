@@ -1,4 +1,12 @@
-# UIKitPropertyAnimatorDemo
 
-UIViewPropertyAnimator demo inspired by apple conference wwdc 2017
-This application consists of master and detail view controllers. You may pop up and hide detail view controller by tapping on its header or by swiping its header up and down. If you move detail view controller less than a half of screen it will return back to its initial position
+##UIKitPropertyAnimatorDemo
+
+This project is example of using `UIViewPropertyAnimator` to create interactive and interruptible animations. The project is inspired by WWDC 2017 presentation "Advanced animations in iOS" (https://developer.apple.com/videos/play/wwdc2017/230/) and Nathan Gitter tutorial (https://github.com/nathangitter/interactive-animations). Key difference from these projects is grouping coordination of `UIViewPropertyAnimator` in class `AnimationCoordinator`
+
+##Compatibility
+
+The project was build with XCode 10.1.
+
+##License
+
+MIT © 2019 Vladimir Inozemtsev. See LICENSE for full details.
