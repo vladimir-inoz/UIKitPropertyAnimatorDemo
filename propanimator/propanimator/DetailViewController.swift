@@ -81,10 +81,11 @@ class DetailViewController: UIViewController, UIScrollViewDelegate {
     }()
     private lazy var tableView: UITableView = {
         let table = UITableView(frame: CGRect.zero, style: .plain)
+        table.estimatedRowHeight = 70.0
         table.dataSource = dataSource
         table.panGestureRecognizer.addTarget(self, action: #selector(handlePanFromTableView))
         (table as UIScrollView).delegate = self
-        table.register(UITableViewCell.self, forCellReuseIdentifier: "PlainCell")
+        table.register(CommentCell.self, forCellReuseIdentifier: "PlainCell")
         return table
     }()
     public weak var delegate: DetailViewControllerDelegate?
